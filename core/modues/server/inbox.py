@@ -13,8 +13,7 @@ def inbox(args, self):
             "data" : {
                 "username" : self.pw[1],
                 "password" : self.pw[0],
-                "public_key" : public_key,
-                "from" : args[0]
+                "public_key" : public_key
             }
         }).encode())
         data = s.recv(1024)

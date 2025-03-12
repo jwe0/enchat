@@ -2,6 +2,7 @@
 __pycache__
 assets
 env
+test
 
 # Files
 .env

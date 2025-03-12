@@ -91,7 +91,6 @@ class Functions:
     def get_inbox(self, args):
         username = args["username"]
         password = args["password"]
-        from_user = args["from"]
 
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_API")
@@ -114,7 +113,6 @@ class Functions:
             supabse.table("messages")
             .select("*")
             .eq("to", username)
-            .eq("from", from_user)
             .execute()
         )
 
@@ -152,6 +150,31 @@ class Functions:
         return {
             "status" : 0
         }
+    
+    def login(self, args):
+        username = args["username"]
+        password = args["password"]
+
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_API")
+        supabse = Client(url, key)
+
+        response = (
+            supabse.table("users")
+            .select("*")
+            .eq("username", username)
+            .eq("password", hashlib.sha256(password.encode()).hexdigest())
+            .execute()
+        )
+
+        if len(response.data) > 0:
+            return {
+                "status" : 0
+            }
+
+        return {
+            "status" : 1
+        }
 
 class Server:
     def __init__(self):
@@ -166,7 +189,8 @@ class Server:
             0 : self.funcs.register,
             1 : self.funcs.send,
             2 : self.funcs.get_user_pub,
-            3 : self.funcs.get_inbox
+            3 : self.funcs.get_inbox,
+            4 : self.funcs.login
         }
         if data["op"] in commands:
             response = commands[data["op"]](data["data"])

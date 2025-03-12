@@ -4,6 +4,7 @@ from core.modues.init import init, load_user
 from core.modues.server.register import register
 from core.modues.server.send import send
 from core.modues.server.inbox import inbox
+from core.modues.server.login import login
 
 
 class Main:
@@ -30,8 +31,12 @@ class Main:
                 "func" : send
             },
             "inbox" : {
-                "args" : ["(from)"],
+                "args" : [],
                 "func" : inbox
+            },
+            "login" : {
+                "args" : ["<username>", "<password>"],
+                "func" : login
             }
         }
         if args[0] in self.commands:
