@@ -4,6 +4,9 @@ from core.modues.init import load_server
 def login(args, self):
     host, port = load_server()
 
+    if host == None or port == None:
+        return
+
     username = args[0]
     password = args[1]
 
@@ -21,6 +24,7 @@ def login(args, self):
     data = json.loads(data.decode())
 
     if data["status"] == 0:
+        self.pw = (password, username)
         print("Login successful")
         with open("core/assets/user.json", "w") as f:
             json.dump({

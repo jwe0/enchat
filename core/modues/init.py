@@ -1,5 +1,23 @@
-import os, json, hashlib, os
+import os, json, hashlib, os, socket
 from core.modues.crypto.keygen import key_gen
+
+def verify_server(host, port):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)
+            s.connect((host, port))
+            s.sendall(json.dumps({
+                "op" : 10,
+                "data" : {}
+            }).encode())
+            data = s.recv(1024)
+
+        data = json.loads(data.decode())
+
+        if data["status"] == 0:
+            return True
+    except:
+        return False
 
 def load_user():
     if os.path.exists("core/assets/user.json") == False:
@@ -9,7 +27,6 @@ def load_user():
     pw = input("Password: ")
     if hashlib.sha256(pw.encode()).hexdigest() != data["password"]:
         return None
-    print(pw)
     return pw, data["username"]
 
 def load_server():
@@ -18,6 +35,9 @@ def load_server():
         return None, None
     with open("core/assets/server.json", "r") as f:
         data = json.load(f)
+    if verify_server(data["host"], data["port"]) == False:
+        print("Invalid server")
+        return None, None
     return data["host"], data["port"]
 
 def load_keys():

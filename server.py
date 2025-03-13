@@ -155,6 +155,11 @@ class Functions:
         return {
             "status" : 1
         }
+    
+    def up(self, args):
+        return {
+            "status" : 1
+        }
 
 class Server:
     def __init__(self):
@@ -170,7 +175,8 @@ class Server:
             1 : self.funcs.send,
             2 : self.funcs.get_user_pub,
             3 : self.funcs.get_inbox,
-            4 : self.funcs.login
+            4 : self.funcs.login,
+            10 : self.funcs.up
         }
         if data["op"] in commands:
             response = commands[data["op"]](data["data"])
