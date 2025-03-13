@@ -13,6 +13,9 @@ def load_user():
     return pw, data["username"]
 
 def load_server():
+    if not os.path.exists("core/assets/server.json"):
+        print("Server not set")
+        return None, None
     with open("core/assets/server.json", "r") as f:
         data = json.load(f)
     return data["host"], data["port"]

@@ -23,6 +23,8 @@ def get_pub_key(recipient, username, password, host, port):
 
 def send(args, self):
     host, port = load_server()
+    if host == None or port == None:
+        return
     _, public_key = load_keys()
 
     recipient = args[0]

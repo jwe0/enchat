@@ -1,28 +1,21 @@
-import socket, threading, json, os, hashlib
+import socket, threading, json, os, hashlib, sqlite3
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
 load_dotenv()
-
 class Functions:
     def __init__(self):
-        pass
+        ""
 
     def check(self, username):
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_API")
-        supabse = Client(url, key)
+        conn = sqlite3.connect("files/users.db")
+        cursor = conn.cursor()
+        response = cursor.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchall()
 
-        response = (
-            supabse.table("users")
-            .select("*")
-            .eq("username", username)
-            .execute()
-        )
-
-        if len(response.data) > 0:
+        if len(response) > 0:
+            conn.close()
             return True
-
+        conn.close()
         return False
     
     def get_user_pub(self, args):
@@ -31,38 +24,26 @@ class Functions:
         password = args["password"]
         recipient = args["recipient"]
 
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_API")
-        supabse = Client(url, key)
+        conn = sqlite3.connect("files/users.db")
+        cursor = conn.cursor()
 
-        verify = (
-            supabse.table("users")
-            .select("*")
-            .eq("username", username)
-            .eq("password", hashlib.sha256(password.encode()).hexdigest())
-            .execute()
-        )
+        verify = cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hashlib.sha256(password.encode()).hexdigest())).fetchall()
 
-        if len(verify.data) == 0:
+        if len(verify) == 0:
             return {
                 "status" : 1
             }
 
-        response = (
-            supabse.table("users")
-            .select("publickey")
-            .eq("username", recipient)
-            .execute()
-        )
+        response = cursor.execute("SELECT * FROM users WHERE username = ?", (recipient,)).fetchall()
 
-        if len(response.data) == 0:
+        if len(response) == 0:
             return {
                 "status" : 1
             }
 
         return {
             "status" : 0,
-            "public_key" : response.data[0]["publickey"]
+            "public_key" : response[0][3]
         }
     
     def send(self, args):
@@ -70,19 +51,21 @@ class Functions:
         to_user = args["recipient"]
         message = args["message"]
 
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_API")
-        supabse = Client(url, key)
+        conn = sqlite3.connect("files/users.db")
+        cursor = conn.cursor()
 
-        response = (
-            supabse.table("messages")
-            .insert({
-                "from" : from_user,
-                "to" : to_user,
-                "message" : message
-            })
-            .execute()
-        )
+        verify = cursor.execute("SELECT * FROM users WHERE username = ?", (to_user,)).fetchall()
+
+        if len(verify) == 0:
+            return {
+                "status" : 1
+            }
+
+
+        cursor.execute("INSERT INTO messages (from_user, to_user, message) VALUES (?, ?, ?)", (from_user, to_user, message))
+
+        conn.commit()
+        conn.close()
 
         return {
             "status" : 0
@@ -92,33 +75,43 @@ class Functions:
         username = args["username"]
         password = args["password"]
 
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_API")
-        supabse = Client(url, key)
+        conn = sqlite3.connect("files/users.db")
+        cursor = conn.cursor()
 
-        verify = (
-            supabse.table("users")
-            .select("*")
-            .eq("username", username)
-            .eq("password", hashlib.sha256(password.encode()).hexdigest())
-            .execute()
-        )
+        verify = cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hashlib.sha256(password.encode()).hexdigest())).fetchall()
 
-        if len(verify.data) == 0:
+        if len(verify) == 0:
             return {
                 "status" : 1
             }
 
-        response = (
-            supabse.table("messages")
-            .select("*")
-            .eq("to", username)
-            .execute()
-        )
+        response = cursor.execute("SELECT * FROM messages WHERE to_user = ?", (username,)).fetchall()
+
+        if len(response) == 0:
+            return {
+                "status" : 1
+            }
+        
+        res = []
+
+        for i in response:
+            id    = i[0]
+            from_ = i[1]
+            to    = i[2]
+            msg   = i[3]
+
+            res.append({
+                "id" : id,
+                "from" : from_,
+                "to" : to,
+                "message" : msg
+            })
+
+        conn.close()
 
         return {
             "status" : 0,
-            "messages" : response.data
+            "messages" : res
         }
 
 
@@ -133,19 +126,11 @@ class Functions:
                 "status" : 1
             }
         
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_API")
-        supabse = Client(url, key)
-
-        response = (
-            supabse.table("users")
-            .insert({
-                "username" : username,
-                "password" : hashlib.sha256(password.encode()).hexdigest(),
-                "publickey" : public_key
-            })
-            .execute()
-        )
+        conn = sqlite3.connect("files/users.db")
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO users (username, password, public_key) VALUES (?, ?, ?)", (username, hashlib.sha256(password.encode()).hexdigest(), public_key))
+        conn.commit()
+        conn.close()
 
         return {
             "status" : 0
@@ -155,23 +140,18 @@ class Functions:
         username = args["username"]
         password = args["password"]
 
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_API")
-        supabse = Client(url, key)
+        conn = sqlite3.connect("files/users.db")
+        cursor = conn.cursor()
 
-        response = (
-            supabse.table("users")
-            .select("*")
-            .eq("username", username)
-            .eq("password", hashlib.sha256(password.encode()).hexdigest())
-            .execute()
-        )
+        response = cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, hashlib.sha256(password.encode()).hexdigest())).fetchall()
 
-        if len(response.data) > 0:
+        if len(response) > 0:
+            conn.close()
             return {
                 "status" : 0
             }
 
+        conn.close()
         return {
             "status" : 1
         }
@@ -179,7 +159,7 @@ class Functions:
 class Server:
     def __init__(self):
         self.host = "127.0.0.1"
-        self.port = 12345
+        self.port = 1234
         self.funcs = Functions()
         self.start_server()
 
